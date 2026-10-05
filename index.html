@@ -177,7 +177,7 @@
     // ========================================================
     // KONFIGURASI LINK GOOGLE APPS SCRIPT & NOMOR WA
     // ========================================================
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyPxm_kgcuO63A_C2sHi445tx9Tl-pYVBnN7kJbW9mynMmkuUBO9K_8tdE8hladwjUG/exec?api=1';
+    const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyPxm_kgcuO63A_C2sHi445tx9Tl-pYVBnN7kJbW9mynMmkuUBO9K_8tdE8hladwjUG/exec';
     const WA_ADMIN_NUMBER = '6281234567890'; // Ganti dengan nomor WhatsApp Toko Hasna Anda
     const STORE_NAME = 'Toko Hasna Sambit';
 
@@ -189,6 +189,7 @@
     const PAGE_SIZE = 35;
     let searchDebounceTimer = null;
     let observer = null;
+    let activeJsonpScript = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initInfiniteScroll();
@@ -230,39 +231,64 @@
       endNotice.classList.add('hidden');
       if (iconRefresh) iconRefresh.classList.add('fa-spin');
 
-      // Tarik data langsung via Fetch API (bebas iframe & bebas blokir)
-      fetch(GAS_API_URL)
-        .then(res => {
-          if (!res.ok) throw new Error('Status respon server: ' + res.status);
-          return res.json();
-        })
-        .then(res => {
-          if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-          loader.classList.add('hidden');
-          if (res.success) {
-            allProducts = (res.data || []).map(item => ({
-              ...item,
-              _q: (item.nama + ' ' + (item.kode || '') + ' ' + (item.rak || '')).toLowerCase()
-            }));
+      // Bersihkan script JSONP lama jika ada
+      if (activeJsonpScript && activeJsonpScript.parentNode) {
+        activeJsonpScript.parentNode.removeChild(activeJsonpScript);
+      }
 
-            document.getElementById('updateTime').innerText = res.lastUpdate || 'Baru saja';
-            
-            const badge = document.getElementById('sheetBadge');
-            if (res.sheetName && badge) {
-              badge.innerText = 'Tab: ' + res.sheetName;
-              badge.classList.remove('hidden');
-            }
-            
-            applyFilters();
-          } else {
-            showError(res.message);
+      // Buat callback global dinamis
+      const callbackName = 'handleStockData_' + Date.now();
+      let hasTimedOut = false;
+
+      const timeoutId = setTimeout(() => {
+        hasTimedOut = true;
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+        showError('Waktu koneksi habis. Pastikan izin deployment Google Apps Script diatur ke "Anyone".');
+        delete window[callbackName];
+      }, 25000);
+
+      window[callbackName] = function(res) {
+        if (hasTimedOut) return;
+        clearTimeout(timeoutId);
+        delete window[callbackName];
+
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+
+        if (res && res.success) {
+          allProducts = (res.data || []).map(item => ({
+            ...item,
+            _q: ((item.nama || '') + ' ' + (item.kode || '') + ' ' + (item.rak || '')).toLowerCase()
+          }));
+
+          document.getElementById('updateTime').innerText = res.lastUpdate || 'Baru saja';
+          
+          const badge = document.getElementById('sheetBadge');
+          if (res.sheetName && badge) {
+            badge.innerText = 'Tab: ' + res.sheetName;
+            badge.classList.remove('hidden');
           }
-        })
-        .catch(err => {
-          if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-          loader.classList.add('hidden');
-          showError(err.message);
-        });
+          
+          applyFilters();
+        } else {
+          showError(res ? res.message : 'Format data tidak valid.');
+        }
+      };
+
+      // Buat tag script dinamis (JSONP tidak dibatasi oleh CORS)
+      activeJsonpScript = document.createElement('script');
+      activeJsonpScript.src = `${GAS_BASE_URL}?api=1&callback=${callbackName}&_t=${Date.now()}`;
+      activeJsonpScript.onerror = function() {
+        if (hasTimedOut) return;
+        clearTimeout(timeoutId);
+        delete window[callbackName];
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+        showError('Gagal terhubung ke Google Apps Script. Pastikan akses deployment adalah "Anyone".');
+      };
+
+      document.body.appendChild(activeJsonpScript);
     }
 
     function handleSearch(val) {
