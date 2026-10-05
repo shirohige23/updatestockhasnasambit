@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cek Stok & Harga - Toko Hasna Sambit</title>
+  
+  <!-- Tailwind CSS & Font Awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center text-lg font-bold">
+          📦
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight uppercase leading-tight">TOKO HASNA SAMBIT</h1>
+          <p class="text-[11px] text-indigo-200">Cek Stok & Harga Grosir / Retail</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button 
+          onclick="contactAdminGeneral()" 
+          title="Hubungi Admin via WhatsApp"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs shadow-md transition"
+        >
+          <i class="fa-brands fa-whatsapp text-sm"></i>
+          <span>Chat Admin</span>
+        </button>
+
+        <button onclick="fetchData()" id="btnRefresh" title="Perbarui Data" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white">
+          <i class="fa-solid fa-rotate text-sm" id="iconRefresh"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- PENCARIAN & FILTER CEPAT -->
+    <div class="max-w-3xl mx-auto px-4 pb-3 pt-1">
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <i class="fa-solid fa-magnifying-glass text-sm"></i>
+        </span>
+        <input 
+          type="text" 
+          id="searchInput" 
+          oninput="handleSearch(this.value)"
+          placeholder="Ketik nama barang, kode barcode, atau rak..."
+          class="w-full pl-9 pr-9 py-2.5 bg-white text-slate-900 rounded-xl text-xs sm:text-sm placeholder-slate-400 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+        >
+        <button 
+          id="btnClear" 
+          onclick="clearSearch()" 
+          class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+        >
+          <i class="fa-solid fa-circle-xmark"></i>
+        </button>
+      </div>
+
+      <!-- FILTER STATUS STOK -->
+      <div class="flex items-center space-x-2 mt-2.5 overflow-x-auto pb-0.5 text-xs">
+        <button onclick="setFilter('ALL')" id="filter-ALL" class="filter-chip px-3 py-1 rounded-full bg-white text-indigo-700 font-bold shadow-sm whitespace-nowrap">
+          Semua Barang
+        </button>
+        <button onclick="setFilter('READY')" id="filter-READY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">
+          Ready Stok (>0)
+        </button>
+        <button onclick="setFilter('EMPTY')" id="filter-EMPTY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">
+          Stok Kosong (0)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- KONTEN DAFTAR BARANG -->
+  <main class="max-w-3xl mx-auto w-full px-4 py-4 flex-1">
+    
+    <!-- STATISTIK SINGKAT & STATUS DATA -->
+    <div class="flex items-center justify-between text-xs text-slate-500 mb-3 px-1">
+      <div>
+        Menampilkan <span id="countDisplay" class="font-bold text-slate-800">0</span> barang
+        <span id="renderedNote" class="text-[10px] text-slate-400 ml-1"></span>
+        <span id="sheetBadge" class="hidden ml-1 px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-semibold"></span>
+      </div>
+      <div class="text-[11px] text-slate-400 flex items-center">
+        <i class="fa-solid fa-clock-rotate-left mr-1"></i>
+        <span id="updateTime">Memuat data...</span>
+      </div>
+    </div>
+
+    <!-- SKELETON / LOADING STATE -->
+    <div id="loadingState" class="space-y-3">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-3">
+        <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+        <div class="h-3 bg-slate-100 rounded w-1/3"></div>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <div class="h-10 bg-slate-100 rounded-xl"></div>
+          <div class="h-10 bg-slate-100 rounded-xl"></div>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-3">
+        <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+        <div class="h-3 bg-slate-100 rounded w-1/4"></div>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <div class="h-10 bg-slate-100 rounded-xl"></div>
+          <div class="h-10 bg-slate-100 rounded-xl"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="errorState" class="hidden bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-2xl text-xs space-y-2 mb-4">
+      <div class="flex items-center space-x-2 font-bold text-sm">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Gagal Mengambil Data</span>
+      </div>
+      <p id="errorMsg">Pastikan file spreadsheet memiliki izin berbagi dan script telah di-deploy ulang.</p>
+      <button onclick="fetchData()" class="mt-2 px-3 py-1.5 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700 transition">
+        Coba Lagi
+      </button>
+    </div>
+
+    <!-- LIST BARANG -->
+    <div id="productList" class="space-y-3 hidden"></div>
+
+    <!-- LOAD MORE SENTINEL -->
+    <div id="loadMoreTrigger" class="py-6 text-center text-xs text-slate-400 hidden">
+      <div class="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
+        <i class="fa-solid fa-circle-notch fa-spin text-indigo-600"></i>
+        <span>Memuat barang berikutnya...</span>
+      </div>
+    </div>
+
+    <!-- END OF DATA NOTICE -->
+    <div id="endOfData" class="py-8 text-center text-xs text-slate-400 hidden">
+      <i class="fa-solid fa-check text-emerald-500 mr-1"></i> Seluruh barang telah ditampilkan
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div id="emptyState" class="hidden py-16 text-center text-slate-400">
+      <div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-3 text-2xl text-slate-400">
+        <i class="fa-solid fa-box-open"></i>
+      </div>
+      <p class="font-bold text-slate-600 text-sm">Barang tidak ditemukan</p>
+      <p class="text-xs mt-1">Coba kata kunci lain atau periksa penulisan nama/barcode.</p>
+    </div>
+
+  </main>
+
+  <!-- FLOATING BUTTON WHATSAPP -->
+  <div class="fixed bottom-5 right-4 z-50 flex items-center shadow-2xl">
+    <button 
+      onclick="contactAdminGeneral()" 
+      class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white pl-3.5 pr-4 py-3 rounded-full shadow-xl ring-4 ring-emerald-500/20 transition-all duration-200"
+      title="Tanya Live Stok ke Admin Gudang"
+    >
+      <i class="fa-brands fa-whatsapp text-xl"></i>
+      <span class="text-xs font-bold tracking-wide">Tanya Stok Admin</span>
+    </button>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // ========================================================
+    // KONFIGURASI LINK GOOGLE APPS SCRIPT & NOMOR WA
+    // ========================================================
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyPxm_kgcuO63A_C2sHi445tx9Tl-pYVBnN7kJbW9mynMmkuUBO9K_8tdE8hladwjUG/exec?api=1';
+    const WA_ADMIN_NUMBER = '6281234567890'; // Ganti dengan nomor WhatsApp Toko Hasna Anda
+    const STORE_NAME = 'Toko Hasna Sambit';
+
+    let allProducts = [];
+    let filteredProducts = [];
+    let currentFilter = 'ALL';
+    let currentQuery = '';
+    let renderedCount = 0;
+    const PAGE_SIZE = 35;
+    let searchDebounceTimer = null;
+    let observer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initInfiniteScroll();
+      fetchData();
+    });
+
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function initInfiniteScroll() {
+      const sentinel = document.getElementById('loadMoreTrigger');
+      if ('IntersectionObserver' in window) {
+        observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && renderedCount < filteredProducts.length) {
+              appendNextBatch();
+            }
+          });
+        }, { rootMargin: '300px' });
+        observer.observe(sentinel);
+      }
+    }
+
+    function fetchData() {
+      const loader = document.getElementById('loadingState');
+      const list = document.getElementById('productList');
+      const empty = document.getElementById('emptyState');
+      const errorBox = document.getElementById('errorState');
+      const iconRefresh = document.getElementById('iconRefresh');
+      const loadMore = document.getElementById('loadMoreTrigger');
+      const endNotice = document.getElementById('endOfData');
+
+      loader.classList.remove('hidden');
+      list.classList.add('hidden');
+      empty.classList.add('hidden');
+      errorBox.classList.add('hidden');
+      loadMore.classList.add('hidden');
+      endNotice.classList.add('hidden');
+      if (iconRefresh) iconRefresh.classList.add('fa-spin');
+
+      // Tarik data langsung via Fetch API (bebas iframe & bebas blokir)
+      fetch(GAS_API_URL)
+        .then(res => {
+          if (!res.ok) throw new Error('Status respon server: ' + res.status);
+          return res.json();
+        })
+        .then(res => {
+          if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+          loader.classList.add('hidden');
+          if (res.success) {
+            allProducts = (res.data || []).map(item => ({
+              ...item,
+              _q: (item.nama + ' ' + (item.kode || '') + ' ' + (item.rak || '')).toLowerCase()
+            }));
+
+            document.getElementById('updateTime').innerText = res.lastUpdate || 'Baru saja';
+            
+            const badge = document.getElementById('sheetBadge');
+            if (res.sheetName && badge) {
+              badge.innerText = 'Tab: ' + res.sheetName;
+              badge.classList.remove('hidden');
+            }
+            
+            applyFilters();
+          } else {
+            showError(res.message);
+          }
+        })
+        .catch(err => {
+          if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+          loader.classList.add('hidden');
+          showError(err.message);
+        });
+    }
+
+    function handleSearch(val) {
+      clearTimeout(searchDebounceTimer);
+      const btnClear = document.getElementById('btnClear');
+      const query = (val || '').trim();
+      
+      if (query.length > 0) btnClear.classList.remove('hidden');
+      else btnClear.classList.add('hidden');
+
+      searchDebounceTimer = setTimeout(() => {
+        currentQuery = query.toLowerCase();
+        applyFilters();
+      }, 180);
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('searchInput');
+      input.value = '';
+      currentQuery = '';
+      document.getElementById('btnClear').classList.add('hidden');
+      input.focus();
+      applyFilters();
+    }
+
+    function setFilter(type) {
+      currentFilter = type;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.className = 'filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap';
+      });
+      const activeBtn = document.getElementById('filter-' + type);
+      if (activeBtn) {
+        activeBtn.className = 'filter-chip px-3 py-1 rounded-full bg-white text-indigo-700 font-bold shadow-sm whitespace-nowrap';
+      }
+      applyFilters();
+    }
+
+    function applyFilters() {
+      filteredProducts = allProducts.filter(item => {
+        const matchQuery = !currentQuery || item._q.includes(currentQuery);
+        let matchStock = true;
+        if (currentFilter === 'READY') matchStock = item.stok > 0;
+        if (currentFilter === 'EMPTY') matchStock = item.stok <= 0;
+        return matchQuery && matchStock;
+      });
+
+      const countEl = document.getElementById('countDisplay');
+      const listContainer = document.getElementById('productList');
+      const emptyState = document.getElementById('emptyState');
+
+      countEl.innerText = filteredProducts.length.toLocaleString('id-ID');
+      listContainer.innerHTML = '';
+      renderedCount = 0;
+
+      if (filteredProducts.length === 0) {
+        listContainer.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      listContainer.classList.remove('hidden');
+      appendNextBatch();
+    }
+
+    function appendNextBatch() {
+      if (renderedCount >= filteredProducts.length) {
+        document.getElementById('loadMoreTrigger').classList.add('hidden');
+        if (filteredProducts.length > PAGE_SIZE) {
+          document.getElementById('endOfData').classList.remove('hidden');
+        }
+        return;
+      }
+
+      const listContainer = document.getElementById('productList');
+      const nextBatch = filteredProducts.slice(renderedCount, renderedCount + PAGE_SIZE);
+      const fragment = document.createDocumentFragment();
+
+      nextBatch.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-4 border border-slate-200 shadow-sm transition";
+
+        const isHabis = item.stok <= 0;
+        const isKritis = item.stok > 0 && item.stok <= 5;
+
+        let stokBadge = `
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+            Stok: ${item.stok} ${item.satuan || 'PCS'}
+          </span>
+        `;
+
+        if (isHabis) {
+          stokBadge = `
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+              Stok Kosong
+            </span>
+          `;
+        } else if (isKritis) {
+          stokBadge = `
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+              Sisa ${item.stok} ${item.satuan || 'PCS'}
+            </span>
+          `;
+        }
+
+        const safeNama = encodeURIComponent(item.nama || '');
+        const safeKode = encodeURIComponent(item.kode || '-');
+        const safeStok = encodeURIComponent(item.stok);
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-snug">${item.nama}</h3>
+              <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono">
+                ${item.kode ? `<span><i class="fa-solid fa-barcode mr-1"></i>${item.kode}</span>` : ''}
+                ${item.rak ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-sans font-medium"><i class="fa-solid fa-layer-group mr-1 text-slate-400"></i>${item.rak}</span>` : ''}
+              </div>
+            </div>
+            <div class="shrink-0 text-right">
+              ${stokBadge}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-slate-100">
+            <div class="bg-indigo-50/70 p-2.5 rounded-xl border border-indigo-100/70">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Harga Retail (Ecer)</span>
+              <p class="text-base sm:text-lg font-black text-indigo-700 leading-tight mt-0.5">
+                ${formatRupiah(item.hJual)}
+              </p>
+            </div>
+            <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100/70">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Harga Grosir</span>
+              <p class="text-base sm:text-lg font-black text-emerald-700 leading-tight mt-0.5">
+                ${formatRupiah(item.hGrs)}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2">
+            <button 
+              onclick="contactAdminProduct('${safeNama}', '${safeKode}', '${safeStok}')"
+              class="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center space-x-2 border border-emerald-200 transition active:scale-[0.98]"
+            >
+              <i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i>
+              <span>Tanya Ketersediaan Barang Ini via WA</span>
+            </button>
+          </div>
+        `;
+
+        fragment.appendChild(card);
+      });
+
+      listContainer.appendChild(fragment);
+      renderedCount += nextBatch.length;
+
+      const note = document.getElementById('renderedNote');
+      if (filteredProducts.length > PAGE_SIZE) {
+        note.innerText = `(menampilkan ${renderedCount} teratas)`;
+      } else {
+        note.innerText = '';
+      }
+
+      const loadMore = document.getElementById('loadMoreTrigger');
+      const endNotice = document.getElementById('endOfData');
+
+      if (renderedCount < filteredProducts.length) {
+        loadMore.classList.remove('hidden');
+        endNotice.classList.add('hidden');
+      } else {
+        loadMore.classList.add('hidden');
+        if (filteredProducts.length > PAGE_SIZE) {
+          endNotice.classList.remove('hidden');
+        }
+      }
+    }
+
+    function contactAdminGeneral() {
+      const message = `Halo Admin Gudang ${STORE_NAME}, saya ingin menanyakan live update ketersediaan stok barang. Apakah ada yang ready saat ini? Terima kasih.`;
+      const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    }
+
+    function contactAdminProduct(namaEncoded, kodeEncoded, stokEncoded) {
+      const nama = decodeURIComponent(namaEncoded);
+      const kode = decodeURIComponent(kodeEncoded);
+      const stok = decodeURIComponent(stokEncoded);
+
+      const message = `Halo Admin Gudang ${STORE_NAME},\n\nSaya ingin menanyakan live update stok untuk barang berikut:\n- *Nama Barang*: ${nama}\n- *Barcode / Kode*: ${kode}\n- *Stok Tertera*: ${stok}\n\nApakah barang ini masih tersedia? Terima kasih!`;
+      const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    }
+
+    function showError(msg) {
+      const errBox = document.getElementById('errorState');
+      const errMsg = document.getElementById('errorMsg');
+      errMsg.innerText = msg || 'Terjadi gangguan saat mengambil data dari Google Spreadsheet.';
+      errBox.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
