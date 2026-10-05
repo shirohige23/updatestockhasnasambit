@@ -175,9 +175,10 @@
   <!-- JAVASCRIPT LOGIC -->
   <script>
     // ========================================================
-    // KONFIGURASI LINK GOOGLE APPS SCRIPT & NOMOR WA
+    // KONFIGURASI SPREADSHEET TOKO HASNA SAMBIT
     // ========================================================
-    const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyPxm_kgcuO63A_C2sHi445tx9Tl-pYVBnN7kJbW9mynMmkuUBO9K_8tdE8hladwjUG/exec';
+    const SPREADSHEET_ID = '1681L39i-MYN-tB4jKDYET58FEP_WUKGPnO7w87jLpA8';
+    const SHEET_GID = '1404292907'; // GID tab data barang Anda
     const WA_ADMIN_NUMBER = '6281234567890'; // Ganti dengan nomor WhatsApp Toko Hasna Anda
     const STORE_NAME = 'Toko Hasna Sambit';
 
@@ -189,7 +190,6 @@
     const PAGE_SIZE = 35;
     let searchDebounceTimer = null;
     let observer = null;
-    let activeJsonpScript = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initInfiniteScroll();
@@ -198,6 +198,24 @@
 
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function cleanNumber(val) {
+      if (val === null || val === undefined || val === '') return 0;
+      if (typeof val === 'number') return val;
+      let str = String(val).trim().replace(/rp/gi, '').replace(/\s+/g, '');
+      if (str.includes('.') && str.includes(',')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else if (str.includes('.') && !str.includes(',')) {
+        const parts = str.split('.');
+        if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+          str = str.replace(/\./g, '');
+        }
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+      const num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
     }
 
     function initInfiniteScroll() {
@@ -214,7 +232,7 @@
       }
     }
 
-    function fetchData() {
+    async function fetchData() {
       const loader = document.getElementById('loadingState');
       const list = document.getElementById('productList');
       const empty = document.getElementById('emptyState');
@@ -231,64 +249,110 @@
       endNotice.classList.add('hidden');
       if (iconRefresh) iconRefresh.classList.add('fa-spin');
 
-      // Bersihkan script JSONP lama jika ada
-      if (activeJsonpScript && activeJsonpScript.parentNode) {
-        activeJsonpScript.parentNode.removeChild(activeJsonpScript);
-      }
-
-      // Buat callback global dinamis
-      const callbackName = 'handleStockData_' + Date.now();
-      let hasTimedOut = false;
-
-      const timeoutId = setTimeout(() => {
-        hasTimedOut = true;
-        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-        loader.classList.add('hidden');
-        showError('Waktu koneksi habis. Pastikan izin deployment Google Apps Script diatur ke "Anyone".');
-        delete window[callbackName];
-      }, 25000);
-
-      window[callbackName] = function(res) {
-        if (hasTimedOut) return;
-        clearTimeout(timeoutId);
-        delete window[callbackName];
-
-        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-        loader.classList.add('hidden');
-
-        if (res && res.success) {
-          allProducts = (res.data || []).map(item => ({
-            ...item,
-            _q: ((item.nama || '') + ' ' + (item.kode || '') + ' ' + (item.rak || '')).toLowerCase()
-          }));
-
-          document.getElementById('updateTime').innerText = res.lastUpdate || 'Baru saja';
-          
-          const badge = document.getElementById('sheetBadge');
-          if (res.sheetName && badge) {
-            badge.innerText = 'Tab: ' + res.sheetName;
-            badge.classList.remove('hidden');
-          }
-          
-          applyFilters();
-        } else {
-          showError(res ? res.message : 'Format data tidak valid.');
+      try {
+        // Tarik data langsung dari Google Sheets (CORS-friendly, tanpa limit Apps Script)
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}&_t=${Date.now()}`;
+        const response = await fetch(gvizUrl);
+        
+        if (!response.ok) {
+          throw new Error('Gagal mengakses spreadsheet. Pastikan izin berbagi spreadsheet diatur ke "Siapa saja yang memiliki link".');
         }
-      };
 
-      // Buat tag script dinamis (JSONP tidak dibatasi oleh CORS)
-      activeJsonpScript = document.createElement('script');
-      activeJsonpScript.src = `${GAS_BASE_URL}?api=1&callback=${callbackName}&_t=${Date.now()}`;
-      activeJsonpScript.onerror = function() {
-        if (hasTimedOut) return;
-        clearTimeout(timeoutId);
-        delete window[callbackName];
+        const text = await response.text();
+        // Parsing data JSON dari respon Google GViz
+        const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+        if (!jsonMatch || !jsonMatch[1]) {
+          throw new Error('Format data spreadsheet tidak dapat dibaca.');
+        }
+
+        const parsed = JSON.parse(jsonMatch[1]);
+        if (parsed.status === 'error') {
+          throw new Error(parsed.errors && parsed.errors[0] ? parsed.errors[0].detailed_message : 'Akses ditolak oleh Google Sheets.');
+        }
+
+        const table = parsed.table;
+        const rows = table.rows || [];
+
+        // Deteksi pemetaan indeks kolom
+        let col = {
+          kode: 1, nama: 2, hBeli: 3, hJual: 4, hGrs: 5, stok: 6, rak: 9, satuan: 14
+        };
+
+        // Deteksi header dinamis jika ada baris judul
+        let startRowIdx = 0;
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const cells = (rows[i].c || []).map(cell => cell && (cell.v !== null && cell.v !== undefined) ? String(cell.v).toLowerCase().trim() : '');
+          const idxNama = cells.findIndex(c => c.includes('nama barang') || c === 'nama' || c === 'barang');
+          if (idxNama !== -1) {
+            startRowIdx = i + 1;
+            col.nama = idxNama;
+            const idxKode = cells.findIndex(c => c.includes('kode') || c.includes('barcode'));
+            if (idxKode !== -1) col.kode = idxKode;
+            cells.forEach((c, idx) => {
+              if (c.includes('h.jual') || c.includes('harga jual') || c === 'retail') col.hJual = idx;
+              if (c.includes('h.j.grs') || c.includes('grosir')) col.hGrs = idx;
+              if (c.includes('stockakhir') || c.includes('stok') || c.includes('stock')) col.stok = idx;
+              if (c.includes('kd_rak') || c.includes('rak')) col.rak = idx;
+              if (c.includes('satuan') || c.includes('unit')) col.satuan = idx;
+            });
+            break;
+          }
+        }
+
+        const products = [];
+        for (let r = startRowIdx; r < rows.length; r++) {
+          const cells = rows[r].c || [];
+          const getVal = (idx) => {
+            if (idx === -1 || !cells[idx]) return '';
+            const cell = cells[idx];
+            return (cell.f !== undefined && cell.f !== null) ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '');
+          };
+
+          const rawNama = String(getVal(col.nama)).trim();
+          if (!rawNama || rawNama.toLowerCase().includes('nama barang') || rawNama.toLowerCase().includes('total :')) {
+            continue;
+          }
+
+          const kode = String(getVal(col.kode)).trim();
+          const hJual = cleanNumber(getVal(col.hJual));
+          const hGrs = cleanNumber(getVal(col.hGrs));
+          const stok = cleanNumber(getVal(col.stok));
+          const rak = String(getVal(col.rak)).trim();
+          const satuan = String(getVal(col.satuan)).trim() || 'PCS';
+
+          products.push({
+            kode: kode,
+            nama: rawNama,
+            hJual: hJual,
+            hGrs: hGrs,
+            stok: stok,
+            rak: rak,
+            satuan: satuan,
+            _q: (rawNama + ' ' + kode + ' ' + rak).toLowerCase()
+          });
+        }
+
+        allProducts = products;
+
+        const now = new Date();
+        document.getElementById('updateTime').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const badge = document.getElementById('sheetBadge');
+        if (badge) {
+          badge.innerText = 'Online Live';
+          badge.classList.remove('hidden');
+        }
+
         if (iconRefresh) iconRefresh.classList.remove('fa-spin');
         loader.classList.add('hidden');
-        showError('Gagal terhubung ke Google Apps Script. Pastikan akses deployment adalah "Anyone".');
-      };
 
-      document.body.appendChild(activeJsonpScript);
+        applyFilters();
+
+      } catch (err) {
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+        showError(err.message || 'Gagal memuat data dari Spreadsheet.');
+      }
     }
 
     function handleSearch(val) {
