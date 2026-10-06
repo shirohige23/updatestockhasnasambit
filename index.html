@@ -533,7 +533,7 @@
 
     function contactAdminGeneral() {
       const message = `Halo Admin Gudang ${STORE_NAME}, saya ingin menanyakan live update ketersediaan stok barang. Apakah ada yang ready saat ini? Terima kasih.`;
-      const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
+      const url = `https://api.whatsapp.com/send?phone=${6281775200420}&text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
     }
 
@@ -543,7 +543,7 @@
       const stok = decodeURIComponent(stokEncoded);
 
       const message = `Halo Admin Gudang ${STORE_NAME},\n\nSaya ingin menanyakan live update stok untuk barang berikut:\n- *Nama Barang*: ${nama}\n- *Barcode / Kode*: ${kode}\n- *Stok Tertera*: ${stok}\n\nApakah barang ini masih tersedia? Terima kasih!`;
-      const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
+      const url = `https://api.whatsapp.com/send?phone=${6281775200420}&text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
     }
 
