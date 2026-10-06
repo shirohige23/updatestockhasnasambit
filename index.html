@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cek Stok & Harga - Toko Hasna Sambit</title>
   
-  <!-- Tailwind CSS & Font Awesome -->
+  <!-- Tailwind CSS & Font Awesome Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
@@ -14,13 +14,6 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-tap-highlight-color: transparent;
-    }
-    .custom-scroll::-webkit-scrollbar {
-      width: 4px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background-color: #cbd5e1;
-      border-radius: 9999px;
     }
   </style>
 </head>
@@ -38,35 +31,56 @@
           <p class="text-[11px] text-indigo-200">Cek Stok & Harga Grosir / Retail</p>
         </div>
       </div>
-      <button onclick="fetchData()" id="btnRefresh" title="Perbarui Data" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white">
-        <i class="fa-solid fa-rotate text-sm" id="iconRefresh"></i>
-      </button>
+      
+      <div class="flex items-center space-x-2">
+        <button 
+          onclick="contactAdminGeneral()" 
+          title="Hubungi Admin via WhatsApp"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs shadow-md transition"
+        >
+          <i class="fa-brands fa-whatsapp text-sm"></i>
+          <span>Chat Admin</span>
+        </button>
+
+        <button onclick="fetchData()" id="btnRefresh" title="Perbarui Data" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white">
+          <i class="fa-solid fa-rotate text-sm" id="iconRefresh"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- PENCARIAN UTAMA -->
-    <div class="max-w-3xl mx-auto px-4 pb-3.5 pt-1">
+    <!-- PENCARIAN & FILTER CEPAT -->
+    <div class="max-w-3xl mx-auto px-4 pb-3 pt-1">
       <div class="relative">
-        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-300">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
           <i class="fa-solid fa-magnifying-glass text-sm"></i>
         </span>
         <input 
           type="text" 
           id="searchInput" 
-          oninput="handleSearch(this.value)" 
-          placeholder="Ketik nama barang atau scan barcode..." 
-          class="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white text-slate-800 placeholder-slate-400 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-          autocomplete="off"
+          oninput="handleSearch(this.value)"
+          placeholder="Ketik nama barang, kode barcode, atau rak..."
+          class="w-full pl-9 pr-9 py-2.5 bg-white text-slate-900 rounded-xl text-xs sm:text-sm placeholder-slate-400 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
         >
-        <button id="btnClear" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-circle-xmark text-sm"></i>
+        <button 
+          id="btnClear" 
+          onclick="clearSearch()" 
+          class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+        >
+          <i class="fa-solid fa-circle-xmark"></i>
         </button>
       </div>
 
-      <!-- FILTER QUICK CHIPS -->
-      <div class="flex items-center space-x-2 mt-2.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-        <button onclick="setFilter('ALL')" id="filter-ALL" class="filter-chip px-3 py-1 rounded-full bg-white text-indigo-700 font-bold shadow-sm whitespace-nowrap">Semua</button>
-        <button onclick="setFilter('READY')" id="filter-READY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">Stok Ready (>0)</button>
-        <button onclick="setFilter('EMPTY')" id="filter-EMPTY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">Stok Habis (0)</button>
+      <!-- FILTER STATUS STOK -->
+      <div class="flex items-center space-x-2 mt-2.5 overflow-x-auto pb-0.5 text-xs">
+        <button onclick="setFilter('ALL')" id="filter-ALL" class="filter-chip px-3 py-1 rounded-full bg-white text-indigo-700 font-bold shadow-sm whitespace-nowrap">
+          Semua Barang
+        </button>
+        <button onclick="setFilter('READY')" id="filter-READY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">
+          Ready Stok (>0)
+        </button>
+        <button onclick="setFilter('EMPTY')" id="filter-EMPTY" class="filter-chip px-3 py-1 rounded-full bg-white/20 text-white font-medium hover:bg-white/30 whitespace-nowrap">
+          Stok Kosong (0)
+        </button>
       </div>
     </div>
   </header>
@@ -79,11 +93,11 @@
       <div>
         Menampilkan <span id="countDisplay" class="font-bold text-slate-800">0</span> barang
         <span id="renderedNote" class="text-[10px] text-slate-400 ml-1"></span>
-        <span id="sheetBadge" class="hidden ml-1 px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-semibold"></span>
+        <span id="sheetBadge" class="hidden ml-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold"></span>
       </div>
       <div class="text-[11px] text-slate-400 flex items-center">
         <i class="fa-solid fa-clock-rotate-left mr-1"></i>
-        <span id="updateTime">Memuat...</span>
+        <span id="updateTime">Memuat data...</span>
       </div>
     </div>
 
@@ -107,24 +121,22 @@
       </div>
     </div>
 
-    <!-- ERROR ALERT (JIKA KONEKSI GAGAL) -->
+    <!-- ERROR STATE -->
     <div id="errorState" class="hidden bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-2xl text-xs space-y-2 mb-4">
       <div class="flex items-center space-x-2 font-bold text-sm">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <span>Gagal Mengambil Data</span>
       </div>
-      <p id="errorMsg">Pastikan file spreadsheet memiliki izin berbagi dan script telah di-deploy ulang.</p>
+      <p id="errorMsg">Pastikan izin berbagi spreadsheet diatur ke "Siapa saja yang memiliki link".</p>
       <button onclick="fetchData()" class="mt-2 px-3 py-1.5 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700 transition">
         Coba Lagi
       </button>
     </div>
 
     <!-- LIST BARANG -->
-    <div id="productList" class="space-y-3 hidden">
-      <!-- Item kartu dirender secara dinamis lewat JS -->
-    </div>
+    <div id="productList" class="space-y-3 hidden"></div>
 
-    <!-- INFINITE SCROLL / LOAD MORE SENTINEL -->
+    <!-- LOAD MORE SENTINEL -->
     <div id="loadMoreTrigger" class="py-6 text-center text-xs text-slate-400 hidden">
       <div class="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
         <i class="fa-solid fa-circle-notch fa-spin text-indigo-600"></i>
@@ -137,7 +149,7 @@
       <i class="fa-solid fa-check text-emerald-500 mr-1"></i> Seluruh barang telah ditampilkan
     </div>
 
-    <!-- EMPTY RESULT STATE -->
+    <!-- EMPTY STATE -->
     <div id="emptyState" class="hidden py-16 text-center text-slate-400">
       <div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-3 text-2xl text-slate-400">
         <i class="fa-solid fa-box-open"></i>
@@ -148,26 +160,26 @@
 
   </main>
 
-  <!-- TOMBOL MENGAMBANG (FLOATING ACTION BUTTON) WHATSAPP ADMIN GUDANG -->
-  <div class="fixed bottom-5 right-4 z-40 flex items-center space-x-2">
+  <!-- FLOATING BUTTON WHATSAPP -->
+  <div class="fixed bottom-5 right-4 z-50 flex items-center shadow-2xl">
     <button 
       onclick="contactAdminGeneral()" 
-      class="group flex items-center bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white pl-3.5 pr-4 py-2.5 rounded-full shadow-lg hover:shadow-emerald-500/30 transition-all duration-200 border-2 border-white/80"
+      class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white pl-3.5 pr-4 py-3 rounded-full shadow-xl ring-4 ring-emerald-500/20 transition-all duration-200"
       title="Tanya Live Stok ke Admin Gudang"
     >
-      <i class="fa-brands fa-whatsapp text-xl mr-2 text-white"></i>
+      <i class="fa-brands fa-whatsapp text-xl"></i>
       <span class="text-xs font-bold tracking-wide">Tanya Stok Admin</span>
     </button>
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
+  <!-- JAVASCRIPT LOGIC DIRECT SPREADSHEET -->
   <script>
-    // ==========================================
-    // KONFIGURASI NOMOR WHATSAPP ADMIN GUDANG
-    // Ganti nomor di bawah ini (awali dengan kode negara '62' tanpa tanda '+' atau '0')
-    // Contoh: 081234567890 -> '6281234567890'
-    // ==========================================
-    const WA_ADMIN_NUMBER = '6281775200420'; 
+    // ========================================================
+    // KONFIGURASI SPREADSHEET LIVE MASTER DATA
+    // ========================================================
+    const SPREADSHEET_ID = '1681L39i-MYN-tB4jKDYET58FEP_WUKGPnO7w87jLpA8';
+    const SHEET_GID = '1404292907'; // GID tab data barang Anda
+    const WA_ADMIN_NUMBER = '6281234567890'; // Ganti dengan nomor WhatsApp Toko Hasna Anda
     const STORE_NAME = 'Toko Hasna Sambit';
 
     let allProducts = [];
@@ -175,7 +187,7 @@
     let currentFilter = 'ALL';
     let currentQuery = '';
     let renderedCount = 0;
-    const PAGE_SIZE = 35; // Render 35 barang per batch agar RAM HP tetap ringan
+    const PAGE_SIZE = 35;
     let searchDebounceTimer = null;
     let observer = null;
 
@@ -186,6 +198,24 @@
 
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function cleanNumber(val) {
+      if (val === null || val === undefined || val === '') return 0;
+      if (typeof val === 'number') return val;
+      let str = String(val).trim().replace(/rp/gi, '').replace(/\s+/g, '');
+      if (str.includes('.') && str.includes(',')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else if (str.includes('.') && !str.includes(',')) {
+        const parts = str.split('.');
+        if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+          str = str.replace(/\./g, '');
+        }
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+      const num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
     }
 
     function initInfiniteScroll() {
@@ -199,19 +229,10 @@
           });
         }, { rootMargin: '300px' });
         observer.observe(sentinel);
-      } else {
-        // Fallback scroll listener untuk browser lama
-        window.addEventListener('scroll', () => {
-          if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
-            if (renderedCount < filteredProducts.length) {
-              appendNextBatch();
-            }
-          }
-        });
       }
     }
 
-    function fetchData() {
+    async function fetchData() {
       const loader = document.getElementById('loadingState');
       const list = document.getElementById('productList');
       const empty = document.getElementById('emptyState');
@@ -228,73 +249,118 @@
       endNotice.classList.add('hidden');
       if (iconRefresh) iconRefresh.classList.add('fa-spin');
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-            loader.classList.add('hidden');
-            if (res.success) {
-              // Pre-process pencarian: buat lowercase nama & kode sekali saja untuk efisiensi
-              allProducts = (res.data || []).map(item => ({
-                ...item,
-                _q: (item.nama + ' ' + (item.kode || '') + ' ' + (item.rak || '')).toLowerCase()
-              }));
+      try {
+        // Ambil data Google GViz langsung dari Google Spreadsheet
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}&_t=${Date.now()}`;
+        const response = await fetch(gvizUrl);
+        
+        if (!response.ok) {
+          throw new Error('Gagal mengakses spreadsheet. Pastikan izin berbagi spreadsheet diatur ke "Siapa saja yang memiliki link".');
+        }
 
-              document.getElementById('updateTime').innerText = res.lastUpdate || 'Baru saja';
-              
-              const badge = document.getElementById('sheetBadge');
-              if (res.sheetName && badge) {
-                badge.innerText = 'Tab: ' + res.sheetName;
-                badge.classList.remove('hidden');
-              }
-              
-              applyFilters();
-            } else {
-              showError(res.message);
-            }
-          })
-          .withFailureHandler(err => {
-            if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-            loader.classList.add('hidden');
-            showError(err.message);
-          })
-          .getMasterBarangData();
-      } else {
-        // Mock data saat preview browser lokal
-        setTimeout(() => {
-          if (iconRefresh) iconRefresh.classList.remove('fa-spin');
-          loader.classList.add('hidden');
-          const mock = [];
-          for (let i = 1; i <= 200; i++) {
-            mock.push({
-              kode: '997000' + i,
-              nama: 'CONTOH BARANG ' + i + ' HASNA SAMBIT',
-              stok: i % 4 === 0 ? 0 : (i % 3 === 0 ? 3 : 25),
-              hJual: 2000 + (i * 100),
-              hGrs: 1800 + (i * 100),
-              rak: 'RAK ' + (i % 20),
-              satuan: 'PCS',
-              _q: ('contoh barang ' + i + ' hasna sambit 997000' + i).toLowerCase()
+        const text = await response.text();
+        const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+        if (!jsonMatch || !jsonMatch[1]) {
+          throw new Error('Format data spreadsheet tidak dapat dibaca.');
+        }
+
+        const parsed = JSON.parse(jsonMatch[1]);
+        if (parsed.status === 'error') {
+          throw new Error(parsed.errors && parsed.errors[0] ? parsed.errors[0].detailed_message : 'Akses ditolak oleh Google Sheets.');
+        }
+
+        const table = parsed.table;
+        const rows = table.rows || [];
+
+        // Pemetaan kolom default tabel rptBarang Toko Hasna Sambit
+        let col = {
+          kode: 1, nama: 2, hBeli: 3, hJual: 4, hGrs: 5, stok: 6, rak: 9, satuan: 14
+        };
+
+        // Deteksi baris header dinamis
+        let startRowIdx = 0;
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const cells = (rows[i].c || []).map(cell => cell && (cell.v !== null && cell.v !== undefined) ? String(cell.v).toLowerCase().trim() : '');
+          const idxNama = cells.findIndex(c => c.includes('nama barang') || c === 'nama' || c === 'barang');
+          if (idxNama !== -1) {
+            startRowIdx = i + 1;
+            col.nama = idxNama;
+            const idxKode = cells.findIndex(c => c.includes('kode') || c.includes('barcode'));
+            if (idxKode !== -1) col.kode = idxKode;
+            cells.forEach((c, idx) => {
+              if (c.includes('h.jual') || c.includes('harga jual') || c === 'retail') col.hJual = idx;
+              if (c.includes('h.j.grs') || c.includes('grosir')) col.hGrs = idx;
+              if (c.includes('stockakhir') || c.includes('stok') || c.includes('stock')) col.stok = idx;
+              if (c.includes('kd_rak') || c.includes('rak')) col.rak = idx;
+              if (c.includes('satuan') || c.includes('unit')) col.satuan = idx;
             });
+            break;
           }
-          allProducts = mock;
-          document.getElementById('updateTime').innerText = 'Demo Lokal';
-          applyFilters();
-        }, 300);
+        }
+
+        const products = [];
+        for (let r = startRowIdx; r < rows.length; r++) {
+          const cells = rows[r].c || [];
+          const getVal = (idx) => {
+            if (idx === -1 || !cells[idx]) return '';
+            const cell = cells[idx];
+            return (cell.f !== undefined && cell.f !== null) ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '');
+          };
+
+          const rawNama = String(getVal(col.nama)).trim();
+          if (!rawNama || rawNama.toLowerCase().includes('nama barang') || rawNama.toLowerCase().includes('total :')) {
+            continue;
+          }
+
+          const kode = String(getVal(col.kode)).trim();
+          const hJual = cleanNumber(getVal(col.hJual));
+          const hGrs = cleanNumber(getVal(col.hGrs));
+          const stok = cleanNumber(getVal(col.stok));
+          const rak = String(getVal(col.rak)).trim();
+          const satuan = String(getVal(col.satuan)).trim() || 'PCS';
+
+          products.push({
+            kode: kode,
+            nama: rawNama,
+            hJual: hJual,
+            hGrs: hGrs,
+            stok: stok,
+            rak: rak,
+            satuan: satuan,
+            _q: (rawNama + ' ' + kode + ' ' + rak).toLowerCase()
+          });
+        }
+
+        allProducts = products;
+
+        const now = new Date();
+        document.getElementById('updateTime').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const badge = document.getElementById('sheetBadge');
+        if (badge) {
+          badge.innerText = 'Online Live';
+          badge.classList.remove('hidden');
+        }
+
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+
+        applyFilters();
+
+      } catch (err) {
+        if (iconRefresh) iconRefresh.classList.remove('fa-spin');
+        loader.classList.add('hidden');
+        showError(err.message || 'Gagal memuat data dari Spreadsheet.');
       }
     }
 
-    // Debounce search agar saat ngetik di HP tidak ngelag
     function handleSearch(val) {
       clearTimeout(searchDebounceTimer);
       const btnClear = document.getElementById('btnClear');
-      
       const query = (val || '').trim();
-      if (query.length > 0) {
-        btnClear.classList.remove('hidden');
-      } else {
-        btnClear.classList.add('hidden');
-      }
+      
+      if (query.length > 0) btnClear.classList.remove('hidden');
+      else btnClear.classList.add('hidden');
 
       searchDebounceTimer = setTimeout(() => {
         currentQuery = query.toLowerCase();
@@ -324,41 +390,30 @@
     }
 
     function applyFilters() {
-      // Filter data di memori
       filteredProducts = allProducts.filter(item => {
         const matchQuery = !currentQuery || item._q.includes(currentQuery);
-
         let matchStock = true;
         if (currentFilter === 'READY') matchStock = item.stok > 0;
         if (currentFilter === 'EMPTY') matchStock = item.stok <= 0;
-
         return matchQuery && matchStock;
       });
 
       const countEl = document.getElementById('countDisplay');
       const listContainer = document.getElementById('productList');
       const emptyState = document.getElementById('emptyState');
-      const loadMore = document.getElementById('loadMoreTrigger');
-      const endNotice = document.getElementById('endOfData');
 
       countEl.innerText = filteredProducts.length.toLocaleString('id-ID');
-
-      // Reset list dan render batch pertama
       listContainer.innerHTML = '';
       renderedCount = 0;
 
       if (filteredProducts.length === 0) {
         listContainer.classList.add('hidden');
         emptyState.classList.remove('hidden');
-        loadMore.classList.add('hidden');
-        endNotice.classList.add('hidden');
-        updateRenderedNote();
         return;
       }
 
       emptyState.classList.add('hidden');
       listContainer.classList.remove('hidden');
-
       appendNextBatch();
     }
 
@@ -373,12 +428,11 @@
 
       const listContainer = document.getElementById('productList');
       const nextBatch = filteredProducts.slice(renderedCount, renderedCount + PAGE_SIZE);
-      
       const fragment = document.createDocumentFragment();
 
       nextBatch.forEach(item => {
         const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm transition";
+        card.className = "bg-white rounded-2xl p-4 border border-slate-200 shadow-sm transition";
 
         const isHabis = item.stok <= 0;
         const isKritis = item.stok > 0 && item.stok <= 5;
@@ -406,7 +460,6 @@
           `;
         }
 
-        // Siapkan atribut escape untuk tombol tanya WA per barang
         const safeNama = encodeURIComponent(item.nama || '');
         const safeKode = encodeURIComponent(item.kode || '-');
         const safeStok = encodeURIComponent(item.stok);
@@ -440,14 +493,13 @@
             </div>
           </div>
 
-          <!-- TOMBOL CHAT ADMIN UNTUK BARANG INI -->
-          <div class="mt-2.5 pt-2 flex items-center justify-between">
+          <div class="mt-3 pt-2">
             <button 
               onclick="contactAdminProduct('${safeNama}', '${safeKode}', '${safeStok}')"
-              class="w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 text-xs font-semibold flex items-center justify-center space-x-1.5 transition active:scale-[0.98]"
+              class="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center space-x-2 border border-emerald-200 transition active:scale-[0.98]"
             >
-              <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
-              <span>Tanya Ketersediaan Barang Ini</span>
+              <i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i>
+              <span>Tanya Ketersediaan Barang Ini via WA</span>
             </button>
           </div>
         `;
@@ -458,7 +510,12 @@
       listContainer.appendChild(fragment);
       renderedCount += nextBatch.length;
 
-      updateRenderedNote();
+      const note = document.getElementById('renderedNote');
+      if (filteredProducts.length > PAGE_SIZE) {
+        note.innerText = `(menampilkan ${renderedCount} teratas)`;
+      } else {
+        note.innerText = '';
+      }
 
       const loadMore = document.getElementById('loadMoreTrigger');
       const endNotice = document.getElementById('endOfData');
@@ -474,9 +531,6 @@
       }
     }
 
-    // ==========================================
-    // FUNGSI CHAT KE WHATSAPP ADMIN GUDANG
-    // ==========================================
     function contactAdminGeneral() {
       const message = `Halo Admin Gudang ${STORE_NAME}, saya ingin menanyakan live update ketersediaan stok barang. Apakah ada yang ready saat ini? Terima kasih.`;
       const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
@@ -488,18 +542,9 @@
       const kode = decodeURIComponent(kodeEncoded);
       const stok = decodeURIComponent(stokEncoded);
 
-      const message = `Halo Admin Gudang ${STORE_NAME},\n\nSaya ingin menanyakan live update stok untuk barang berikut:\n- *Nama Barang*: ${nama}\n- *Barcode / Kode*: ${kode}\n- *Stok Tertera*: ${stok}\n\nApakah barang ini masih tersedia atau ada stok masuk baru? Terima kasih!`;
-      const url = `https://api.whatsapp.com/send?phone=${6281775200420}&text=${encodeURIComponent(message)}`;
+      const message = `Halo Admin Gudang ${STORE_NAME},\n\nSaya ingin menanyakan live update stok untuk barang berikut:\n- *Nama Barang*: ${nama}\n- *Barcode / Kode*: ${kode}\n- *Stok Tertera*: ${stok}\n\nApakah barang ini masih tersedia? Terima kasih!`;
+      const url = `https://api.whatsapp.com/send?phone=${WA_ADMIN_NUMBER}&text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
-    }
-
-    function updateRenderedNote() {
-      const note = document.getElementById('renderedNote');
-      if (filteredProducts.length > PAGE_SIZE) {
-        note.innerText = `(menampilkan ${renderedCount} teratas)`;
-      } else {
-        note.innerText = '';
-      }
     }
 
     function showError(msg) {
